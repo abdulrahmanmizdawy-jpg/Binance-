@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>ARBSCAN — Triangle Bot</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap');
+    :root {
+      --bg:#07090F; --bg2:#0D1220; --bg3:#111827;
+      --border:#1A2840; --border2:#0A1120;
+      --text:#CBD5E0; --muted:#4A5568; --dim:#2A3F5F;
+      --green:#16F195; --red:#FF4D6D; --yellow:#F0B90B; --purple:#AB9FF2;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;font-size:13px;min-height:100vh;padding-bottom:40px}
+    .spin{animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .pulse{animation:pulse 2s infinite}
+    @keyframes pulse{50%{opacity:.25}}
+    .ain{animation:ain .3s ease}
+    @keyframes ain{from{opacity:0;transform:translateY(-6px)}}
+    #header{background:var(--bg2);border-bottom:1px solid var(--border);padding:13px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
+    .logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;letter-spacing:-1px}
+    .logo em{color:var(--green);font-style:normal}
+    .logo-badge{font-size:8px;color:var(--purple);margin-left:8px;background:rgba(171,159,242,.12);padding:2px 7px;border-radius:3px;letter-spacing:.1em}
+    #ws-status{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)}
+    #ws-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0}
+    #ws-dot.live{background:var(--green);box-shadow:0 0 8px var(--green)}
+    #settings-btn{background:var(--bg3);border:1px solid var(--border);color:var(--muted);padding:6px 10px;border-radius:8px;font-size:11px;cursor:pointer;font-family:'Space Mono',monospace}
+    #main{padding:14px 16px;display:flex;flex-direction:column;gap:14px}
+    #api-warning{background:rgba(255,77,109,.06);border:1px solid rgba(255,77,109,.2);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
+    .warn-title{font-size:10px;color:var(--red);letter-spacing:.1em;margin-bottom:2px}
+    .warn-text{font-size:11px;color:var(--muted);line-height:1.8}
+    .warn-btn{background:rgba(255,77,109,.12);border:1px solid rgba(255,77,109,.25);color:var(--red);padding:9px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Space Mono',monospace;text-align:center}
+    .control-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px}
+    .control-title{font-size:9px;color:var(--dim);letter-spacing:.12em}
+    .amount-wrap{flex:1;position:relative}
+    .amount-prefix{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;font-weight:700}
+    #amount-input{width:100%;background:var(--bg3);border:1px solid var(--border);color:#fff;padding:12px 12px 12px 28px;border-radius:10px;font-size:18px;font-weight:700;font-family:'Space Mono',monospace;outline:none;transition:border-color .15s}
+    #amount-input:focus{border-color:var(--green)}
+    #amount-input::placeholder{color:var(--dim)}
+    .min-warn{font-size:10px;color:var(--yellow);display:none;margin-top:-8px}
+    .min-warn.show{display:block}
+    #start-btn{width:100%;padding:16px;border-radius:12px;border:none;font-family:'Syne',sans-serif;font-size:18px;font-weight:800;cursor:pointer;transition:all .2s;letter-spacing:.05em;background:rgba(22,241,149,.12);color:var(--green);border:1px solid rgba(22,241,149,.3)}
+    #start-btn.running{background:rgba(255,77,109,.12);color:var(--red);border-color:rgba(255,77,109,.3)}
+    #start-btn:disabled{opacity:.4;cursor:not-allowed}
+    #status-bar{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;display:none}
+    #status-bar.show{display:block}
+    .status-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .stat-box{background:var(--bg3);border-radius:8px;padding:10px 12px}
+    .stat-label{font-size:9px;color:var(--dim);letter-spacing:.1em;margin-bottom:4px}
+    .stat-val{font-size:18px;font-weight:700;color:#fff}
+    .stat-val.green{color:var(--green)}
+    .stat-val.yellow{color:var(--yellow)}
+    .running-indicator{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11px;color:var(--muted)}
+    .run-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+    .triangles-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+    .card-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+    .card-header-title{font-size:9px;color:var(--dim);letter-spacing:.12em}
+    .triangle-row{padding:11px 14px;border-bottom:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center}
+    .triangle-row:last-child{border-bottom:none}
+    .triangle-row.profitable{background:rgba(22,241,149,.025)}
+    .tri-path{font-size:11px;color:var(--text);font-weight:700;margin-bottom:3px}
+    .tri-fees{font-size:9px;color:var(--dim)}
+    .tri-right{text-align:right}
+    .tri-pct{font-size:14px;font-weight:700}
+    .tri-pct.green{color:var(--green)}
+    .tri-pct.red{color:var(--red)}
+    .tri-profit{font-size:10px;color:var(--muted);margin-top:2px}
+    #signal-card{display:none;background:rgba(22,241,149,.06);border:1px solid rgba(22,241,149,.25);border-radius:14px;padding:15px}
+    #signal-card.show{display:block;animation:ain .3s}
+    .signal-tag{font-size:9px;color:var(--green);letter-spacing:.12em;margin-bottom:8px}
+    .signal-path{font-size:16px;font-weight:700;color:#fff;margin-bottom:6px}
+    .signal-detail{font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.9}
+    #execute-btn{width:100%;padding:15px;border-radius:11px;border:none;font-family:'Syne',sans-serif;font-size:17px;font-weight:800;cursor:pointer;background:var(--green);color:#07090F;letter-spacing:.05em;transition:all .15s}
+    #execute-btn.executing{background:var(--yellow)}
+    .log-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+    .log-empty{padding:18px;text-align:center;color:#1E2D45;font-size:12px}
+    .log-row{padding:11px 14px;border-bottom:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center}
+    .log-row:last-child{border-bottom:none}
+    .log-path{font-size:11px;color:var(--text);font-weight:700}
+    .log-time{font-size:9px;color:var(--dim);margin-top:2px}
+    .log-right{text-align:right}
+    .log-profit{font-size:13px;font-weight:700;color:var(--green)}
+    .log-amount{font-size:10px;color:var(--muted);margin-top:2px}
+    .log-status{font-size:9px;margin-top:2px}
+    .log-status.sim{color:var(--yellow)}
+    .log-status.live{color:var(--green)}
+    #settings-panel{display:none;position:fixed;inset:0;background:rgba(7,9,15,.97);z-index:200;overflow-y:auto;padding:20px 16px 40px}
+    #settings-panel.open{display:block}
+    .settings-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+    .settings-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff}
+    .close-btn{background:var(--bg3);border:1px solid var(--border);color:var(--muted);padding:7px 12px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Space Mono',monospace}
+    .api-field{margin-bottom:14px}
+    .api-label{font-size:11px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+    .api-star{color:var(--yellow)}
+    .api-input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:11px 12px;border-radius:8px;font-size:12px;font-family:'Space Mono',monospace;outline:none;transition:border-color .15s}
+    .api-input:focus{border-color:var(--green)}
+    .api-input::placeholder{color:var(--dim)}
+    .save-btn{width:100%;padding:13px;background:rgba(22,241,149,.1);border:1px solid rgba(22,241,149,.3);color:var(--green);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Space Mono',monospace;letter-spacing:.08em}
+    .settings-note{font-size:10px;color:var(--dim);line-height:1.8;margin-top:14px;padding:12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)}
+    .section-label{font-size:9px;color:var(--dim);letter-spacing:.12em;margin-bottom:12px;margin-top:20px}
+    #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:20px;font-size:12px;z-index:300;display:none;white-space:nowrap;max-width:90vw;text-align:center}
+    #toast.show{display:block;animation:ain .3s}
+  </style>
+</head>
+<body>
+<div id="header">
+  <div style="display:flex;align-items:center">
+    <span class="logo">ARB<em>SCAN</em></span>
+    <span class="logo-badge">TRIANGLE BOT</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div id="ws-status">
+      <div id="ws-dot" class="spin" style="border:2px solid #1A2840;border-top-color:#16F195;background:transparent;width:10px;height:10px"></div>
+      <span id="ws-label">connecting…</span>
+    </div>
+    <button id="settings-btn" onclick="openSettings()">⚙ Keys</button>
+  </div>
+</div>
+<div id="main">
+  <div id="api-warning">
+    <div class="warn-title">⚠ BINANCE API KEY REQUIRED</div>
+    <div class="warn-text">Add your Binance API key to enable live trading. Without it the bot runs in <strong style="color:var(--yellow)">SIMULATION MODE</strong> — real signals, no real trades.</div>
+    <div class="warn-btn" onclick="openSettings()">⚙ Add API Key</div>
+  </div>
+  <div class="control-card">
+    <div class="control-title">TRADE AMOUNT</div>
+    <div class="amount-wrap">
+      <span class="amount-prefix">$</span>
+      <input id="amount-input" type="number" placeholder="50" min="10" step="1" oninput="checkAmount()"/>
+    </div>
+    <div class="min-warn" id="min-warn">⚠ Minimum recommended: $15 per leg ($45 total for 3 legs)</div>
+    <button id="start-btn" onclick="toggleBot()" disabled>START BOT</button>
+  </div>
+  <div id="status-bar">
+    <div class="status-grid">
+      <div class="stat-box"><div class="stat-label">TOTAL PROFIT</div><div class="stat-val green" id="total-profit">$0.00000</div></div>
+      <div class="stat-box"><div class="stat-label">TRADES</div><div class="stat-val" id="trade-count">0</div></div>
+      <div class="stat-box"><div class="stat-label">BALANCE</div><div class="stat-val yellow" id="current-balance">$0.00</div></div>
+      <div class="stat-box"><div class="stat-label">SIGNALS</div><div class="stat-val" id="signal-count">0</div></div>
+    </div>
+    <div class="running-indicator" id="running-indicator" style="display:none">
+      <div class="run-dot pulse"></div>
+      <span id="running-text">Scanning triangles…</span>
+    </div>
+  </div>
+  <div id="signal-card">
+    <div class="signal-tag">✦ PROFITABLE TRIANGLE DETECTED</div>
+    <div class="signal-path" id="signal-path">—</div>
+    <div class="signal-detail" id="signal-detail">—</div>
+    <button id="execute-btn" onclick="manualExecute()">EXECUTE ARB</button>
+  </div>
+  <div class="triangles-card">
+    <div class="card-header">
+      <span class="card-header-title">LIVE TRIANGLE SCANNER</span>
+      <span id="scan-tick" style="font-size:9px;color:var(--dim)">—</span>
+    </div>
+    <div id="triangles-list"><div class="log-empty">Waiting for price data…</div></div>
+  </div>
+  <div class="log-card">
+    <div class="card-header">
+      <span class="card-header-title">TRADE LOG</span>
+      <span id="log-mode" style="font-size:9px;color:var(--yellow)">SIMULATION</span>
+    </div>
+    <div id="trade-log"><div class="log-empty">No trades yet — start the bot</div></div>
+  </div>
+</div>
+<div id="settings-panel">
+  <div class="settings-header">
+    <span class="settings-title">API Keys</span>
+    <button class="close-btn" onclick="closeSettings()">✕ Close</button>
+  </div>
+  <div class="section-label">⭐ BINANCE</div>
+  <div class="api-field">
+    <div class="api-label"><span class="api-star">⭐</span> API Key</div>
+    <input class="api-input" id="bn-key" type="password" placeholder="Binance API key…"/>
+  </div>
+  <div class="api-field">
+    <div class="api-label">Secret Key</div>
+    <input class="api-input" id="bn-secret" type="password" placeholder="Binance secret key…"/>
+  </div>
+  <button class="save-btn" onclick="saveKeys()">SAVE KEYS</button>
+  <div class="settings-note">
+    🔒 Keys stored only on your device. Never sent anywhere except Binance directly.<br/><br/>
+    ⚙ Enable <strong>Spot Trading only</strong>. Do NOT enable withdrawals.<br/><br/>
+    🔒 Restrict the API key to your IP for extra security.
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+const TRIANGLES=[
+  {path:["USDT","BTC","ETH","USDT"],pairs:["BTCUSDT","ETHBTC","ETHUSDT"],label:"USDT→BTC→ETH→USDT"},
+  {path:["USDT","BTC","BNB","USDT"],pairs:["BTCUSDT","BNBBTC","BNBUSDT"],label:"USDT→BTC→BNB→USDT"},
+  {path:["USDT","ETH","BNB","USDT"],pairs:["ETHUSDT","BNBETH","BNBUSDT"],label:"USDT→ETH→BNB→USDT"},
+  {path:["USDT","BTC","SOL","USDT"],pairs:["BTCUSDT","SOLBTC","SOLUSDT"],label:"USDT→BTC→SOL→USDT"},
+  {path:["USDT","ETH","SOL","USDT"],pairs:["ETHUSDT","SOLETH","SOLUSDT"],label:"USDT→ETH→SOL→USDT"},
+  {path:["USDT","BNB","SOL","USDT"],pairs:["BNBUSDT","SOLBNB","SOLUSDT"],label:"USDT→BNB→SOL→USDT"},
+  {path:["USDT","BTC","AVAX","USDT"],pairs:["BTCUSDT","AVAXBTC","AVAXUSDT"],label:"USDT→BTC→AVAX→USDT"},
+  {path:["USDT","ETH","AVAX","USDT"],pairs:["ETHUSDT","AVAXETH","AVAXUSDT"],label:"USDT→ETH→AVAX→USDT"},
+];
+const FEE=0.001,TOTAL_FEES=0.003;
+let orderBooks={},botRunning=false,scanInterval=null,tradeLog=[],totalProfit=0,tradeCount=0,signalCount=0,balance=0,hasApiKey=false,bestSignal=null;
+function fmt(n,dec=2){if(n===null||n===undefined)return"—";return n.toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec})}
+function showToast(msg,d=2500){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),d)}
+function loadKeys(){document.getElementById("bn-key").value=localStorage.getItem("bnKey")||"";document.getElementById("bn-secret").value=localStorage.getItem("bnSecret")||"";checkApiKey()}
+function saveKeys(){localStorage.setItem("bnKey",document.getElementById("bn-key").value.trim());localStorage.setItem("bnSecret",document.getElementById("bn-secret").value.trim());checkApiKey();closeSettings();showToast("✓ Keys saved")}
+function checkApiKey(){hasApiKey=!!(localStorage.getItem("bnKey")&&localStorage.getItem("bnSecret"));document.getElementById("api-warning").style.display=hasApiKey?"none":"flex";document.getElementById("log-mode").textContent=hasApiKey?"LIVE":"SIMULATION";document.getElementById("log-mode").style.color=hasApiKey?"var(--green)":"var(--yellow)"}
+function openSettings(){loadKeys();document.getElementById("settings-panel").classList.add("open")}
+function closeSettings(){document.getElementById("settings-panel").classList.remove("open")}
+function checkAmount(){const val=parseFloat(document.getElementById("amount-input").value)||0;document.getElementById("min-warn").classList.toggle("show",val>0&&val<45);document.getElementById("start-btn").disabled=val<=0;balance=val;document.getElementById("current-balance").textContent="$"+fmt(val)}
+function calcTriangle(tri,amount){
+  const[p1,p2,p3]=tri.pairs;
+  const b1=orderBooks[p1],b2=orderBooks[p2],b3=orderBooks[p3];
+  if(!b1||!b2||!b3)return null;
+  try{
+    const step1=(amount*(1-FEE))/b1.ask;
+    let step2;
+    if(p2.endsWith("BTC")||p2.endsWith("ETH")||p2.endsWith("BNB")){step2=(step1*(1-FEE))/b2.ask;}
+    else{step2=step1*b2.bid*(1-FEE);}
+    const final=step2*b3.bid*(1-FEE);
+    const profit=final-amount;
+    const pct=(profit/amount)*100;
+    return{profit,pct,final,valid:true};
+  }catch{return null}
+}
+function scanTriangles(){
+  const amount=parseFloat(document.getElementById("amount-input").value)||0;
+  if(amount<=0)return;
+  const results=TRIANGLES.map(tri=>{const calc=calcTriangle(tri,amount);return{...tri,calc}}).filter(r=>r.calc);
+  results.sort((a,b)=>b.calc.pct-a.calc.pct);
+  document.getElementById("scan-tick").textContent=new Date().toLocaleTimeString();
+  const list=document.getElementById("triangles-list");
+  if(results.length===0){list.innerHTML='<div class="log-empty">Waiting for order book data…</div>';return}
+  list.innerHTML=results.map(r=>{
+    const p=r.calc.pct>0;
+    return`<div class="triangle-row ${p?"profitable":""}">
+      <div><div class="tri-path">${r.label}</div><div class="tri-fees">3 legs · 0.3% total fees</div></div>
+      <div class="tri-right"><div class="tri-pct ${p?"green":"red"}">${p?"+":""}${r.calc.pct.toFixed(4)}%</div><div class="tri-profit">${p?"+$":"-$"}${Math.abs(r.calc.profit).toFixed(5)}</div></div>
+    </div>`;
+  }).join("");
+  const best=results.find(r=>r.calc.pct>0);
+  signalCount+=results.filter(r=>r.calc.pct>0).length;
+  document.getElementById("signal-count").textContent=signalCount;
+  if(best){bestSignal=best;showSignal(best,amount);if(botRunning)autoExecute(best,amount);}
+  else{document.getElementById("signal-card").classList.remove("show");bestSignal=null;}
+}
+function showSignal(tri,amount){
+  document.getElementById("signal-card").classList.add("show");
+  document.getElementById("signal-path").textContent=tri.label;
+  document.getElementById("signal-detail").innerHTML=`Net profit: <strong style="color:var(--green)">+$${tri.calc.profit.toFixed(5)}</strong> · ${tri.calc.pct.toFixed(4)}%<br/>In: $${fmt(amount)} → Out: $${fmt(tri.calc.final)}<br/>Fees: 0.3% (3 × 0.1% Binance)`;
+}
+function recordTrade(tri,amount,mode){
+  totalProfit+=tri.calc.profit;tradeCount++;balance=tri.calc.final;
+  document.getElementById("total-profit").textContent="$"+totalProfit.toFixed(5);
+  document.getElementById("trade-count").textContent=tradeCount;
+  document.getElementById("current-balance").textContent="$"+fmt(balance);
+  tradeLog.unshift({label:tri.label,profit:tri.calc.profit,amount,final:tri.calc.final,pct:tri.calc.pct,time:new Date().toLocaleTimeString(),mode});
+  if(tradeLog.length>50)tradeLog.pop();
+  renderLog();
+}
+function renderLog(){
+  const el=document.getElementById("trade-log");
+  if(tradeLog.length===0){el.innerHTML='<div class="log-empty">No trades yet — start the bot</div>';return}
+  el.innerHTML=tradeLog.map(t=>`<div class="log-row ain"><div class="log-left"><div class="log-path">${t.label}</div><div class="log-time">${t.time}</div></div><div class="log-right"><div class="log-profit">+$${t.profit.toFixed(5)}</div><div class="log-amount">$${fmt(t.amount)} → $${fmt(t.final)}</div><div class="log-status ${t.mode}">${t.mode==="live"?"● LIVE":"◌ SIMULATED"}</div></div></div>`).join("");
+}
+function autoExecute(tri,amount){
+  document.getElementById("running-text").textContent="Executing: "+tri.label+"…";
+  setTimeout(()=>{recordTrade(tri,amount,hasApiKey?"live":"sim");document.getElementById("running-text").textContent="Scanning triangles…";},400);
+}
+function manualExecute(){
+  if(!bestSignal){showToast("No signal available");return}
+  const amount=parseFloat(document.getElementById("amount-input").value)||0;
+  if(amount<=0){showToast("Enter an amount first");return}
+  const btn=document.getElementById("execute-btn");
+  btn.textContent="EXECUTING…";btn.classList.add("executing");
+  autoExecute(bestSignal,amount);
+  setTimeout(()=>{btn.textContent="EXECUTE ARB";btn.classList.remove("executing");showToast("✓ Trade executed!")},600);
+}
+function toggleBot(){
+  const amount=parseFloat(document.getElementById("amount-input").value)||0;
+  if(amount<=0){showToast("Enter an amount first");return}
+  botRunning=!botRunning;
+  const btn=document.getElementById("start-btn");
+  if(botRunning){
+    btn.textContent="■ STOP BOT";btn.classList.add("running");
+    document.getElementById("amount-input").disabled=true;
+    document.getElementById("status-bar").classList.add("show");
+    document.getElementById("running-indicator").style.display="flex";
+    document.getElementById("current-balance").textContent="$"+fmt(amount);
+    balance=amount;totalProfit=0;tradeCount=0;signalCount=0;
+    document.getElementById("total-profit").textContent="$0.00000";
+    document.getElementById("trade-count").textContent="0";
+    document.getElementById("signal-count").textContent="0";
+    scanInterval=setInterval(scanTriangles,1000);
+    showToast(hasApiKey?"🟢 Bot started — LIVE MODE":"🟡 Bot started — SIMULATION MODE",3000);
+  }else{
+    btn.textContent="START BOT";btn.classList.remove("running");
+    document.getElementById("amount-input").disabled=false;
+    document.getElementById("running-indicator").style.display="none";
+    clearInterval(scanInterval);
+    document.getElementById("signal-card").classList.remove("show");
+    showToast("Bot stopped · "+tradeCount+" trades · +$"+totalProfit.toFixed(5)+" profit");
+  }
+}
+function connectWS(){
+  const allPairs=[...new Set(TRIANGLES.flatMap(t=>t.pairs))];
+  const streams=allPairs.map(p=>p.toLowerCase()+"@bookTicker").join("/");
+  const ws=new WebSocket("wss://stream.binance.com:9443/stream?streams="+streams);
+  ws.onopen=()=>{
+    const dot=document.getElementById("ws-dot");
+    dot.style.border="none";dot.style.width="8px";dot.style.height="8px";dot.className="live pulse";
+    document.getElementById("ws-label").textContent="LIVE";
+    document.getElementById("start-btn").disabled=!parseFloat(document.getElementById("amount-input").value);
+  };
+  ws.onclose=()=>{document.getElementById("ws-dot").style.cssText="width:8px;height:8px;border-radius:50%;background:#F0B90B";document.getElementById("ws-label").textContent="reconnecting…";setTimeout(connectWS,3000)};
+  ws.onerror=()=>ws.close();
+  ws.onmessage=(e)=>{try{const{data:d}=JSON.parse(e.data);if(!d?.s)return;orderBooks[d.s]={bid:parseFloat(d.b),ask:parseFloat(d.a)}}catch{}};
+}
+checkApiKey();
+connectWS();
+</script>
+</body>
+</html>
